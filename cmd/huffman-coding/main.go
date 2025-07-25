@@ -1,174 +1,179 @@
 package main
 
 import (
+	"container/heap"
 	"fmt"
-	"slices"
 )
 
-// An internal node is a node who has children and so is opposite to a leaf node.
-// In a min-heap, it can have a maximum of 2 children.
+// Node represents either an Internal Node or a Leaf Node
+// Internal Node is a Node with children and a Leaf Node is childless
+// In a Binary Tree, each Internal Node can have a maximum of 2 children (left and right).
+// In a Min-Heap, which implements the Priority Queue ADT, the Binary Tree must be complete
+// (meaning that it's filled left-to-right except maybe the last level), and the heap invariant
+// where every parent node's Frequency is <= the Frequency of each of its children individually
+// must be satisfied.
 type Node struct {
-	Frequency int16
-	LeftNode  *Node
-	RightNode *Node
-	Symbol    string
+	Frequency  int
+	LeftNode   *Node
+	RightNode  *Node
+	Symbol     rune // nil for Internal Nodes
+	Discovered bool
 }
 
-// type LeafNode struct {
-// 	Symbol    string
-// 	Frequency int16
-// }
+// MinHeap is a Data Structure (DT) which is an implementation of
+// the priority queue ADT. One of the simplest ways (or canonical ways)
+// to construct the Huffman Coding algorithm is to use a priority queue
+// where the node with the lowest probability/frequency is given the
+// highest priority.
+type MinHeap []*Node
+
+func (h MinHeap) Len() int {
+	return len(h)
+}
+
+// Less returns whether h[i] < h[j]; this makes it a min-heap
+func (h MinHeap) Less(i, j int) bool {
+	return h[i].Frequency < h[j].Frequency
+}
+
+// Swap swaps elements
+func (h MinHeap) Swap(i, j int) {
+	h[i], h[j] = h[j], h[i]
+}
+
+// Push adds x to the heap (called by heap.Push)
+func (h *MinHeap) Push(x any) {
+	*h = append(*h, x.(*Node)) // Type assertion to *Node
+}
+
+// Pop removes and returns last element (called by heap.Pop)
+func (h *MinHeap) Pop() any {
+	old := *h
+	length := len(old)
+	lastNode := old[length-1]
+	*h = old[0 : length-1]
+	return lastNode
+}
 
 func main() {
-	// Min-heap LOL
-	// There are a bunch of rules
-	// in a min heap parents can't be larger than any of their children.
-	// Every parent can have a maximum of 2 children.
-	// levels must be filled from left to right. There can NOT be any gaps in the middle.
-	// Min-heap is a binary tree.
-	// The below is an acceptable min-heap because the binary tree looks like this:
-	//         1         (0)
-	//       /   \
-	//      2     3      (1,2)
-	//     / \   /
-	//    4   5 6        (3,4,5)
-
-	// Min-heap priority queue sorted based on the frequencies of the symbols:
-	nodes := []*Node{
+	minHeap := &MinHeap{
 		{
-			Symbol:    "a",
-			Frequency: 5,
+			Symbol:    'a',
+			Frequency: 3,
 		},
 		{
-			Symbol:    "b",
-			Frequency: 9,
+			Symbol:    'b',
+			Frequency: 1,
 		},
 		{
-			Symbol:    "c",
-			Frequency: 12,
+			Symbol:    'c',
+			Frequency: 1,
 		},
 		{
-			Symbol:    "d",
-			Frequency: 13,
-		},
-		{
-			Symbol:    "e",
-			Frequency: 16,
-		},
-		{
-			Symbol:    "f",
-			Frequency: 45,
+			Symbol:    'd',
+			Frequency: 1,
 		},
 	}
 
-	fmt.Println(nodes)
+	// Establish the heap invariants and validate/sanitize the minHeap
+	heap.Init(minHeap)
 
-	nodes = extract(nodes)
+	extract(minHeap)
 
-	fmt.Println(nodes)
+	fmt.Println((*minHeap)[0].LeftNode)
 
-	nodes = extract(nodes)
+	codeWords := make(map[string]string)
 
-	fmt.Println(nodes)
+	dfs((*minHeap)[0], "", codeWords)
 
-	nodes = extract(nodes)
-
-	fmt.Println(nodes)
-
-	nodes = extract(nodes)
-
-	fmt.Println(nodes)
-
-	nodes = extract(nodes)
-
-	fmt.Println(*nodes[0])
-	fmt.Println(*nodes[0].LeftNode)
-	fmt.Println(*nodes[0].RightNode)
-
-	// leftNode := nodes[0].LeftNode
-	// rightNode := nodes[0].RightNode
-	// for {
-	// 	fmt.Println(leftNode)
-	// 	fmt.Println(rightNode)
-	// 	if leftNode == nil || rightNode == nil {
-	// 		break
-	// 	}
-	// 	leftNode = leftNode.LeftNode
-	// 	rightNode = leftNode.RightNode
-	// }
+	fmt.Println(codeWords)
 }
 
-// Modifying the length of a slice in Go requires us to return a new slice (i.e., a new slice header)
-// void functions can't be used
-func extract(nodes []*Node) []*Node {
-	nodeLength := len(nodes)
-	fmt.Printf("Length of nodes: %d \n", nodeLength)
+// dfs is a Depth-First Search function that traverses
+// the built Huffman Tree and constructs a map of the symbols
+// mapped to codewords. The codes (or codewords) in the Huffman
+// Coding algorithm consist of binary digits (0 or 1, base 2). This is
+// because compression is about minimizing entropy and redundancy
+// on the bit level. After all, the goal of compression is to
+// reduce the amount of bits.
+func dfs(node *Node, code string, codeWords map[string]string) {
 
-	var newNode *Node
-	if nodeLength >= 2 {
-		leftNode := nodes[0]
-		rightNode := nodes[1]
-		newNode = &Node{
-			Frequency: nodes[0].Frequency + nodes[1].Frequency,
-			LeftNode:  leftNode,
-			RightNode: rightNode,
-			Symbol:    "",
-		}
-		// NOT LIKE THIS: WHY?
-		// LeftNode: &Node{
-		// 		Symbol:    nodes[0].Symbol,
-		// 		Frequency: nodes[0].Frequency,
-		// 	},
-		// 	RightNode: &Node{
-		// 		Symbol:    nodes[1].Symbol,
-		// 		Frequency: nodes[1].Frequency,
-		// 	},
-	} else if nodeLength == 1 {
-		leftNode := nodes[0]
-		newNode = &Node{
-			Frequency: nodes[0].Frequency,
-			LeftNode:  leftNode,
-			RightNode: nil,
-			Symbol:    "",
-		}
-	} else {
-		newNode = &Node{
-			Frequency: 0,
-			LeftNode:  nil,
-			RightNode: nil,
-			Symbol:    "",
-		}
+	if node == nil {
+		return
 	}
 
-	fmt.Printf("New node: %v \n", *newNode)
-	fmt.Printf("Left node: %v \n", *newNode.LeftNode)
-	fmt.Printf("Right node: %v \n", *newNode.RightNode)
+	// If it's a Leaf Node, add the constructed code word to codeWords map
+	if node.LeftNode == nil && node.RightNode == nil {
+		codeWords[string(node.Symbol)] = code
+		return
+	}
 
-	newNodes := nodes[2:]
-	// newNodes := slices.Delete(nodes, 0, 2)
+	// If the Internal Node has a left node, recursively call dfs() while appending "0" to `code`.
+	dfs(node.LeftNode, code+"0", codeWords)
 
-	if len(newNodes) > 0 {
-		for i, node := range newNodes {
-			fmt.Printf("Index: %d \n", i)
-			if node.Frequency > newNode.Frequency {
-				// firstHalf := newNodes[:i]
-				// otherHalf := newNodes[i:]
-				// newNodes = slices.Concat(firstHalf, []*Node{newNode}, otherHalf)
-				newNodes = slices.Insert(newNodes, i, newNode)
-				break
+	// If the Internal Node has a right node, recursively call dfs() while appending "1" to `code`.
+	dfs(node.RightNode, code+"1", codeWords)
+}
+
+// extract is a function that extracts 2 lowest-frequency
+// Nodes to build a binary tree from the bottom up (i.e.,
+// the extracted Nodes are combined into a new Internal Node
+// which is then reinserted into the min-heap). This process
+// should be repeated until there is only 1 Node left, which
+// becomes the root of the final Huffman Tree.
+func extract(nodes *MinHeap) {
+	nodeLength := nodes.Len()
+
+	for nodeLength > 1 {
+		fmt.Printf("Length of nodes: %d \n", nodeLength)
+		var newNode *Node
+		if nodeLength >= 2 {
+			// Remove two nodes with the highest priority (i.e., lowest frequency) from the min-heap.
+			leftNode := heap.Pop(nodes).(*Node)
+			rightNode := heap.Pop(nodes).(*Node)
+			newNode = &Node{
+				Frequency: leftNode.Frequency + rightNode.Frequency,
+				LeftNode:  leftNode,
+				RightNode: rightNode,
+				Symbol:    0,
 			}
-
-			if (i == (len(newNodes) - 1)) && newNode.Frequency > node.Frequency {
-				// firstHalf := newNodes[:i]
-				// otherHalf := newNodes[i:]
-				// newNodes = slices.Concat(newNodes, []*Node{newNode})
-				newNodes = slices.Insert(newNodes, i, newNode)
-				// newNodes = []Node{newNode}
-				break
+		} else if nodeLength == 1 {
+			leftNode := heap.Pop(nodes).(*Node)
+			// The below should'nt be used. Why?
+			// leftNode := heap.Remove(nodes, 0).(*Node)
+			heap.Init(nodes)
+			newNode = &Node{
+				Frequency: leftNode.Frequency,
+				LeftNode:  leftNode,
+				RightNode: nil,
+				Symbol:    0,
+			}
+		} else {
+			newNode = &Node{
+				Frequency: 0,
+				LeftNode:  nil,
+				RightNode: nil,
+				Symbol:    0,
 			}
 		}
-	} else {
-		newNodes = []*Node{newNode}
+
+		if nodes.Len() > 2 {
+			for i, node := range *nodes {
+				fmt.Printf("Index: %d \n", i)
+				if node.Frequency > newNode.Frequency {
+					nodes.Push(newNode)
+					break
+				}
+
+				if (i == (nodes.Len() - 1)) && newNode.Frequency > node.Frequency {
+					nodes.Push(newNode)
+					break
+				}
+			}
+		} else {
+			nodes.Push(newNode)
+		}
+
+		nodeLength = nodes.Len()
 	}
-	return newNodes
 }
