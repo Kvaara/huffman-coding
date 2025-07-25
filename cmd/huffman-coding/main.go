@@ -59,26 +59,34 @@ func main() {
 	minHeap := &MinHeap{
 		{
 			Symbol:    'a',
-			Frequency: 3,
+			Frequency: 5,
 		},
 		{
 			Symbol:    'b',
-			Frequency: 1,
+			Frequency: 9,
 		},
 		{
 			Symbol:    'c',
-			Frequency: 1,
+			Frequency: 12,
 		},
 		{
 			Symbol:    'd',
-			Frequency: 1,
+			Frequency: 13,
+		},
+		{
+			Symbol:    'e',
+			Frequency: 16,
+		},
+		{
+			Symbol:    'f',
+			Frequency: 45,
 		},
 	}
 
 	// Establish the heap invariants and validate/sanitize the minHeap
 	heap.Init(minHeap)
 
-	extract(minHeap)
+	constructHuffmanTree(minHeap)
 
 	fmt.Println((*minHeap)[0].LeftNode)
 
@@ -115,13 +123,13 @@ func dfs(node *Node, code string, codeWords map[string]string) {
 	dfs(node.RightNode, code+"1", codeWords)
 }
 
-// extract is a function that extracts 2 lowest-frequency
+// constructHuffmanTree is a function that extracts 2 lowest-frequency
 // Nodes to build a binary tree from the bottom up (i.e.,
 // the extracted Nodes are combined into a new Internal Node
 // which is then reinserted into the min-heap). This process
 // should be repeated until there is only 1 Node left, which
 // becomes the root of the final Huffman Tree.
-func extract(nodes *MinHeap) {
+func constructHuffmanTree(nodes *MinHeap) {
 	nodeLength := nodes.Len()
 
 	for nodeLength > 1 {
@@ -141,7 +149,7 @@ func extract(nodes *MinHeap) {
 			leftNode := heap.Pop(nodes).(*Node)
 			// The below should'nt be used. Why?
 			// leftNode := heap.Remove(nodes, 0).(*Node)
-			heap.Init(nodes)
+			// heap.Init(nodes)
 			newNode = &Node{
 				Frequency: leftNode.Frequency,
 				LeftNode:  leftNode,
@@ -157,22 +165,7 @@ func extract(nodes *MinHeap) {
 			}
 		}
 
-		if nodes.Len() > 2 {
-			for i, node := range *nodes {
-				fmt.Printf("Index: %d \n", i)
-				if node.Frequency > newNode.Frequency {
-					nodes.Push(newNode)
-					break
-				}
-
-				if (i == (nodes.Len() - 1)) && newNode.Frequency > node.Frequency {
-					nodes.Push(newNode)
-					break
-				}
-			}
-		} else {
-			nodes.Push(newNode)
-		}
+		nodes.Push(newNode)
 
 		nodeLength = nodes.Len()
 	}
